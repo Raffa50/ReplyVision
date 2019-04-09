@@ -138,6 +138,17 @@ namespace ReplyVision
 
             sb.Append( max.Key ).Append( ", " );
 
+            if(face.FaceAttributes.Makeup != null && face.FaceAttributes.Makeup.LipMakeup)
+                sb.Append( "Lip makeup, " );
+
+            if( face.FaceAttributes.FacialHair != null ) {
+                if( face.FaceAttributes.FacialHair.Beard > 0.25f )
+                    sb.Append( "Beard, " );
+
+                if( face.FaceAttributes.FacialHair.Moustache > 0.25f )
+                    sb.Append( "Moustache, " );
+            }
+
             // Add glasses.
             sb.Append(face.FaceAttributes.Glasses).Append(", ");
 
@@ -213,7 +224,8 @@ namespace ReplyVision
                 {
                     FaceAttributeType.Gender, FaceAttributeType.Age,
                     FaceAttributeType.Smile, FaceAttributeType.Emotion,
-                    FaceAttributeType.Glasses, FaceAttributeType.Hair
+                    FaceAttributeType.Glasses, FaceAttributeType.Hair,
+                    FaceAttributeType.Makeup, FaceAttributeType.FacialHair
                 };
 
             // Call the Face API.
