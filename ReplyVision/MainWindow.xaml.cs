@@ -120,15 +120,17 @@ namespace ReplyVision
 
             Emotion emotionScores = face.FaceAttributes.Emotion;
 
-            var dict= new Dictionary<string, double>();
-            dict.Add("Anger", emotionScores.Anger );
-            dict.Add("Comptempt", emotionScores.Contempt);
-            dict.Add("Disgust", emotionScores.Disgust);
-            dict.Add("Fear", emotionScores.Fear);
-            dict.Add("Happy", emotionScores.Happiness);
-            dict.Add("Neutral", emotionScores.Neutral);
-            dict.Add("Sad", emotionScores.Sadness);
-            dict.Add("Surprise", emotionScores.Surprise);
+            var dict = new Dictionary<string, double>
+            {
+                { "Anger", emotionScores.Anger },
+                { "Comptempt", emotionScores.Contempt },
+                { "Disgust", emotionScores.Disgust },
+                { "Fear", emotionScores.Fear },
+                { "Happy", emotionScores.Happiness },
+                { "Neutral", emotionScores.Neutral },
+                { "Sad", emotionScores.Sadness },
+                { "Surprise", emotionScores.Surprise }
+            };
 
             var max = dict.First();
             foreach( var kv in dict ) {
