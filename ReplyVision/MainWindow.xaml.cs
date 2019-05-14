@@ -37,19 +37,10 @@ namespace ReplyVision
             };
             bool? result = openDlg.ShowDialog(this);
 
-            // Return if canceled.
             if (!result.Value)
-            {
                 return;
-            }
 
-            var fileUri = new Uri(openDlg.FileName);
-            var bitmapSource = new BitmapImage();
-
-            bitmapSource.BeginInit();
-            bitmapSource.CacheOption = BitmapCacheOption.None;
-            bitmapSource.UriSource = fileUri;
-            bitmapSource.EndInit();
+            var bitmapSource = new BitmapImage(new Uri(openDlg.FileName));
 
             FacePhoto.Source = bitmapSource;
 
@@ -59,38 +50,37 @@ namespace ReplyVision
         private async Task DetectFaces( string filePath, BitmapImage bitmapSource ) {
             Title = "Detecting...";
             faceList = await UploadAndDetectFaces( filePath );
-            Title = String.Format( "Detection Finished. {0} face(s) detected", faceList.Count );
+            Title = string.Format( "Detection Finished. {0} face(s) detected", faceList.Count );
 
             if( faceList.Count > 0 ) {
                 // Prepare to draw rectangles around the faces.
                 var visual = new DrawingVisual();
-                DrawingContext drawingContext = visual.RenderOpen();
-                drawingContext.DrawImage(
-                    bitmapSource,
-                    new Rect( 0, 0, bitmapSource.Width, bitmapSource.Height ) );
-                double dpi = bitmapSource.DpiX;
-                // Some images don't contain dpi info.
-                resizeFactor = ( dpi == 0 ) ? 1 : 96 / dpi;
-                faceDescriptions = new String[ faceList.Count ];
+                using (DrawingContext drawingContext = visual.RenderOpen())
+                {
+                    drawingContext.DrawImage(
+                        bitmapSource,
+                        new Rect(0, 0, bitmapSource.Width, bitmapSource.Height));
+                    double dpi = bitmapSource.DpiX;
+                    // Some images don't contain dpi info.
+                    resizeFactor = (dpi == 0) ? 1 : 96 / dpi;
+                    faceDescriptions = new string[faceList.Count];
 
-                for( int i = 0; i < faceList.Count; ++i ) {
-                    DetectedFace face = faceList[i];
+                    for (int i = 0; i < faceList.Count; ++i)
+                    {
+                        DetectedFace face = faceList[i];
 
-                    // Draw a rectangle on the face.
-                    drawingContext.DrawRectangle(
-                        Brushes.Transparent,
-                        new Pen( Brushes.Red, 2 ),
-                        new Rect(
-                            face.FaceRectangle.Left * resizeFactor,
-                            face.FaceRectangle.Top * resizeFactor,
-                            face.FaceRectangle.Width * resizeFactor,
-                            face.FaceRectangle.Height * resizeFactor ) );
+                        drawingContext.DrawRectangle(
+                            Brushes.Transparent,
+                            new Pen(Brushes.Red, 2),
+                            new Rect(
+                                face.FaceRectangle.Left * resizeFactor,
+                                face.FaceRectangle.Top * resizeFactor,
+                                face.FaceRectangle.Width * resizeFactor,
+                                face.FaceRectangle.Height * resizeFactor));
 
-                    // Store the face description.
-                    faceDescriptions[i] = FaceDescription( face );
+                        faceDescriptions[i] = await FaceDescriptionAsync(face);
+                    }
                 }
-
-                drawingContext.Close();
 
                 // Display the image with the rectangle around the face.
                 var faceWithRectBitmap = new RenderTargetBitmap(
@@ -108,7 +98,7 @@ namespace ReplyVision
             }
         }
 
-        private string FaceDescription(DetectedFace face)
+        private async Task<string> FaceDescriptionAsync(DetectedFace face)
         {
             var sb = new StringBuilder("Face: ");
 
@@ -172,11 +162,27 @@ namespace ReplyVision
                 if (hairColor.Confidence >= 0.1f)
                 {
                     sb.Append(hairColor.Color.ToString());
-                    sb.Append(String.Format(" {0:F1}% ", hairColor.Confidence * 100));
+                    sb.Append(string.Format(" {0:F1}% ", hairColor.Confidence * 100));
                 }
             }
 
-            // Return the built string.
+            var results = await faceClient.Face.IdentifyAsync(new[] { face.FaceId.Value }, "team");
+            foreach (var identifyResult in results)
+            {
+                Console.WriteLine("Result of face: {0}", identifyResult.FaceId);
+                if (identifyResult.Candidates.Count == 0)
+                {
+                    Console.WriteLine("No one identified");
+                }
+                else
+                {
+                    // Get top 1 among all candidates returned
+                    var candidateId = identifyResult.Candidates[0].PersonId;
+                    var person = await faceClient.PersonGroupPerson.GetAsync("team", candidateId);
+                    sb.Append(" Recognized: ").Append(person.Name);
+                }
+            }
+
             return sb.ToString();
         }
 
@@ -240,6 +246,7 @@ namespace ReplyVision
                     IList<DetectedFace> faceList =
                         await faceClient.Face.DetectWithStreamAsync(
                             imageFileStream, true, false, faceAttributes);
+
                     return faceList;
                 }
             }
@@ -253,6 +260,33 @@ namespace ReplyVision
                 MessageBox.Show(e.Message, "Error");
                 return new List<DetectedFace>();
             }
+        }
+
+        private async void RecoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var openDlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "JPEG Image(*.jpg)|*.jpg",
+                Multiselect = true
+            };
+            bool? result = openDlg.ShowDialog(this);
+
+            if (!result.Value)
+                return;
+
+            if(await faceClient.PersonGroup.GetAsync("team") == null)
+                await faceClient.PersonGroup.CreateAsync("team", "team");
+
+            foreach( var imgpPath in openDlg.FileNames ) {
+                string name = Path.GetFileNameWithoutExtension(imgpPath);
+                var person = await faceClient.PersonGroupPerson.CreateAsync( "team", name );
+
+                using ( var stream = File.OpenRead( imgpPath ) ) {
+                    await faceClient.PersonGroupPerson.AddFaceFromStreamAsync("team", person.PersonId, stream );
+                }
+            }
+
+            await faceClient.PersonGroup.TrainAsync("team");
         }
 
         public MainWindow()

@@ -12,6 +12,8 @@
             <Button x:Name="BrowseButton" Width="72" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Left"
                     Content="Browse..."
                     Click="BrowseButton_Click" />
+            <Button x:Name="RecoButton" Width="72" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                    Content="Recognition" Click="RecoButton_Click" />
             <StatusBar VerticalAlignment="Bottom">
                 <StatusBarItem>
                     <TextBlock Name="faceDescriptionStatusBar" FontSize="16" />
