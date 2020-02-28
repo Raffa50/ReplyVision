@@ -1,0 +1,16 @@
+﻿<Window x:Class="ReplyVision.InputBox"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ReplyVision"
+        mc:Ignorable="d"
+        Title="InputBox" Height="127.945" Width="421.445" ResizeMode="NoResize">
+    <Grid>
+        <Label x:Name="LblLabel" Margin="10,10,9.6,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="TbValue" Height="23" Margin="10,41,10.2,0" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <Button x:Name="BtnCancel" Content="Cancel" HorizontalAlignment="Left" Margin="330,69,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="0.427,-1.031" Click="BtnCancel_Click"/>
+        <Button x:Name="BtnOk" Content="Ok" HorizontalAlignment="Left" Margin="10,69,0,0" VerticalAlignment="Top" Width="75" RenderTransformOrigin="0.427,-1.031" Click="BtnOk_Click"/>
+
+    </Grid>
+</Window>

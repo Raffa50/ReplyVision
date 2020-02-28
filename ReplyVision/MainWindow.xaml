@@ -5,15 +5,22 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ReplyVision"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="475.592" Width="800" Loaded="Window_Loaded">
     <Grid x:Name="BackPanel">
-        <Image x:Name="FacePhoto" Stretch="Uniform" Margin="0,0,-0.4,28" MouseMove="FacePhoto_MouseMove" />
-        <DockPanel DockPanel.Dock="Bottom">
-            <Button x:Name="BrowseButton" Width="72" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,-0.4,0" Height="38" VerticalAlignment="Top">
+            <Button x:Name="BrowseButton" Width="72" VerticalAlignment="Top" HorizontalAlignment="Left"
                     Content="Browse..."
-                    Click="BrowseButton_Click" />
-            <Button x:Name="RecoButton" Width="72" Height="27" VerticalAlignment="Bottom" HorizontalAlignment="Left"
-                    Content="Recognition" Click="RecoButton_Click" />
+                    Click="BrowseButton_Click" Margin="0,0,0,-0.4" Height="38" />
+            <Button x:Name="RecoButton" Width="72" HorizontalAlignment="Left"
+                    Content="Recognition" Click="RecoButton_Click" Margin="0,0,0,-0.4" />
+            <Button x:Name="ClickAddButton" Width="124" Height="38" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                    Content="Click to Add Person" Click="ClickAddButton_Click" Margin="0,0,0,-0.4" />
+            <Button x:Name="Addbutton" Width="131" Height="38" VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                    Content="Add Person From File" Click="Addbutton_Click" Margin="0,0,0,-0.4" />
+        </DockPanel>
+        <Image x:Name="FacePhoto" Stretch="Uniform" Margin="0,38,-0.4,27.6" MouseMove="FacePhoto_MouseMove" MouseLeftButtonDown="FacePhoto_MouseLeftButtonDown" />
+        <DockPanel DockPanel.Dock="Bottom">
+
             <StatusBar VerticalAlignment="Bottom">
                 <StatusBarItem>
                     <TextBlock Name="faceDescriptionStatusBar" FontSize="16" />

@@ -16,18 +16,21 @@ namespace ReplyVision
 {
     public partial class MainWindow : Window
     {
-        const string subscriptionKey = "e19d5b22624340f091739be8b8c96a48",
-            faceEndpoint = "https://westeurope.api.cognitive.microsoft.com";
+        const string subscriptionKey = "c16bbd8cd72144faa33ab693e34b90d5",
+            faceEndpoint = "https://westeurope.api.cognitive.microsoft.com",
+            defaultStatusBarText = "Place the mouse pointer over a face to see the face description.";
 
+        private string ImagePath;
+        private BitmapImage image;
         private IList<DetectedFace> faceList;
         private string[] faceDescriptions;
         // The resize factor for the displayed image.
         private double resizeFactor;
 
-        private const string defaultStatusBarText =
-            "Place the mouse pointer over a face to see the face description.";
-
         private readonly IFaceClient faceClient;
+        private PersonDb personDb;
+        private bool Selecting;
+        private Int32Rect selectedFace;
 
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
@@ -40,11 +43,12 @@ namespace ReplyVision
             if (!result.Value)
                 return;
 
-            var bitmapSource = new BitmapImage(new Uri(openDlg.FileName));
+            ImagePath = openDlg.FileName;
+            image = new BitmapImage(new Uri(ImagePath));
 
-            FacePhoto.Source = bitmapSource;
+            FacePhoto.Source = image;
 
-            await DetectFaces( openDlg.FileName, bitmapSource );
+            await DetectFaces(ImagePath, image);
         }
 
         private async Task DetectFaces( string filePath, BitmapImage bitmapSource ) {
@@ -55,6 +59,7 @@ namespace ReplyVision
             if( faceList.Count > 0 ) {
                 // Prepare to draw rectangles around the faces.
                 var visual = new DrawingVisual();
+
                 using (DrawingContext drawingContext = visual.RenderOpen())
                 {
                     drawingContext.DrawImage(
@@ -69,14 +74,16 @@ namespace ReplyVision
                     {
                         DetectedFace face = faceList[i];
 
-                        drawingContext.DrawRectangle(
-                            Brushes.Transparent,
-                            new Pen(Brushes.Red, 2),
-                            new Rect(
+                        var rect = new Rect(
                                 face.FaceRectangle.Left * resizeFactor,
                                 face.FaceRectangle.Top * resizeFactor,
                                 face.FaceRectangle.Width * resizeFactor,
-                                face.FaceRectangle.Height * resizeFactor));
+                                face.FaceRectangle.Height * resizeFactor);
+
+                        drawingContext.DrawRectangle(
+                            Brushes.Transparent,
+                            new Pen(Brushes.Red, 2),
+                            rect);
 
                         faceDescriptions[i] = await FaceDescriptionAsync(face);
                     }
@@ -105,7 +112,7 @@ namespace ReplyVision
             // Add the gender, age, and smile.
             sb.Append(face.FaceAttributes.Gender).Append(", ")
                 .Append(face.FaceAttributes.Age).Append(", ")
-                .Append(String.Format("smile {0:F1}%, ", face.FaceAttributes.Smile * 100))
+                .Append(string.Format("smile {0:F1}%, ", face.FaceAttributes.Smile * 100))
                 .Append("Emotion: ");
 
             Emotion emotionScores = face.FaceAttributes.Emotion;
@@ -206,16 +213,18 @@ namespace ReplyVision
             for (int i = 0; i < faceList.Count; ++i)
             {
                 FaceRectangle fr = faceList[i].FaceRectangle;
-                double left = fr.Left * scale;
-                double top = fr.Top * scale;
-                double width = fr.Width * scale;
-                double height = fr.Height * scale;
+                double left = fr.Left * scale,
+                    top = fr.Top * scale,
+                    width = fr.Width * scale,
+                    height = fr.Height * scale;
 
                 // Display the face description if the mouse is over this face rectangle.
                 if (mouseXY.X >= left && mouseXY.X <= left + width &&
                     mouseXY.Y >= top && mouseXY.Y <= top + height)
                 {
                     faceDescriptionStatusBar.Text = faceDescriptions[i];
+                    selectedFace = new Int32Rect((int)(fr.Left / resizeFactor), (int)(fr.Top / resizeFactor), 
+                        (int)(fr.Width / resizeFactor), (int)(fr.Height / resizeFactor));
                     mouseOverFace = true;
                     break;
                 }
@@ -262,7 +271,12 @@ namespace ReplyVision
             }
         }
 
-        private async void RecoButton_Click(object sender, RoutedEventArgs e)
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            personDb.Save("persons.json");
+        }
+
+        private async void Addbutton_Click(object sender, RoutedEventArgs e)
         {
             var openDlg = new Microsoft.Win32.OpenFileDialog
             {
@@ -274,19 +288,79 @@ namespace ReplyVision
             if (!result.Value)
                 return;
 
-            if(await faceClient.PersonGroup.GetAsync("team") == null)
-                await faceClient.PersonGroup.CreateAsync("team", "team");
+            string nameSurname;
+            if (!new InputBox("enter name", "name surname").ShowDialog(out nameSurname))
+                return;
 
-            foreach( var imgpPath in openDlg.FileNames ) {
-                string name = Path.GetFileNameWithoutExtension(imgpPath);
-                var person = await faceClient.PersonGroupPerson.CreateAsync( "team", name );
+            if (!personDb.TryGetValue(nameSurname, out Guid personId))
+            {
+                var person = await faceClient.PersonGroupPerson.CreateAsync("team", nameSurname);
+                personId = person.PersonId;
+            }
 
-                using ( var stream = File.OpenRead( imgpPath ) ) {
-                    await faceClient.PersonGroupPerson.AddFaceFromStreamAsync("team", person.PersonId, stream );
+            foreach (var imgpPath in openDlg.FileNames)
+            {
+                using (var stream = File.OpenRead(imgpPath))
+                {
+                    await faceClient.PersonGroupPerson.AddFaceFromStreamAsync("team", personId, stream);
                 }
             }
 
             await faceClient.PersonGroup.TrainAsync("team");
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (await faceClient.PersonGroup.GetAsync("team") == null)
+                await faceClient.PersonGroup.CreateAsync("team", "team");
+        }
+
+        private void ClickAddButton_Click(object sender, RoutedEventArgs e)
+        {
+            Selecting = true;
+            Cursor = Cursors.Hand;
+        }
+
+        private Stream GetImageStream(BitmapSource source)
+        {
+            var mStream = new MemoryStream();
+            var jEncoder = new JpegBitmapEncoder();
+            jEncoder.Frames.Add(BitmapFrame.Create(source));  //the croppedBitmap is a CroppedBitmap object 
+            jEncoder.QualityLevel = 75;
+            jEncoder.Save(mStream);
+            return mStream;
+        }
+
+        private async void FacePhoto_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!Selecting)
+                return;
+            Selecting = false;
+            Cursor = Cursors.Arrow;
+
+            string nameSurname;
+            if (!new InputBox("enter name", "name surname").ShowDialog(out nameSurname))
+                return;
+
+            if (!personDb.TryGetValue(nameSurname, out Guid personId))
+            {
+                var person = await faceClient.PersonGroupPerson.CreateAsync("team", nameSurname);
+                personId = person.PersonId;
+            }
+
+            var cb = new CroppedBitmap(image, selectedFace);
+            using (var stream = GetImageStream(cb))
+            {
+                await faceClient.PersonGroupPerson.AddFaceFromStreamAsync("team", personId, stream);
+            }
+
+            await faceClient.PersonGroup.TrainAsync("team");
+        }
+
+        private async void RecoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if(image != null)
+                await DetectFaces(ImagePath, image);
         }
 
         public MainWindow()
@@ -298,6 +372,8 @@ namespace ReplyVision
                 new DelegatingHandler[] {} ) {
                 Endpoint = faceEndpoint
             };
+
+            personDb = PersonDb.Load("persons.json");
         }
     }
 }
