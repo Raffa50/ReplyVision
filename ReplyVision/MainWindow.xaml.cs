@@ -223,8 +223,8 @@ namespace ReplyVision
                     mouseXY.Y >= top && mouseXY.Y <= top + height)
                 {
                     faceDescriptionStatusBar.Text = faceDescriptions[i];
-                    selectedFace = new Int32Rect((int)(fr.Left / resizeFactor), (int)(fr.Top / resizeFactor), 
-                        (int)(fr.Width / resizeFactor), (int)(fr.Height / resizeFactor));
+                    selectedFace = new Int32Rect(fr.Left, fr.Top, 
+                        fr.Width, fr.Height);
                     mouseOverFace = true;
                     break;
                 }
@@ -252,11 +252,8 @@ namespace ReplyVision
                 {
                     // The second argument specifies to return the faceId, while
                     // the third argument specifies not to return face landmarks.
-                    IList<DetectedFace> faceList =
-                        await faceClient.Face.DetectWithStreamAsync(
+                    return await faceClient.Face.DetectWithStreamAsync(
                             imageFileStream, true, false, faceAttributes);
-
-                    return faceList;
                 }
             }
             catch (APIErrorException f)
@@ -328,6 +325,7 @@ namespace ReplyVision
             jEncoder.Frames.Add(BitmapFrame.Create(source));  //the croppedBitmap is a CroppedBitmap object 
             jEncoder.QualityLevel = 75;
             jEncoder.Save(mStream);
+            mStream.Seek(0, SeekOrigin.Begin);
             return mStream;
         }
 
@@ -346,6 +344,7 @@ namespace ReplyVision
             {
                 var person = await faceClient.PersonGroupPerson.CreateAsync("team", nameSurname);
                 personId = person.PersonId;
+                personDb.Add(nameSurname, personId);
             }
 
             var cb = new CroppedBitmap(image, selectedFace);
@@ -357,10 +356,18 @@ namespace ReplyVision
             await faceClient.PersonGroup.TrainAsync("team");
         }
 
+        private async void ClearButton_Click(object sender, RoutedEventArgs e)
+        {
+            await faceClient.PersonGroup.DeleteAsync("team");
+            await faceClient.PersonGroup.CreateAsync("team", "team");
+        }
+
         private async void RecoButton_Click(object sender, RoutedEventArgs e)
         {
-            if(image != null)
-                await DetectFaces(ImagePath, image);
+            if (image == null)
+                return;
+
+            await DetectFaces(ImagePath, image);
         }
 
         public MainWindow()

@@ -72,6 +72,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="DebugImageWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="InputBox.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -83,6 +87,9 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DebugImageWindow.xaml.cs">
+      <DependentUpon>DebugImageWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="InputBox.xaml.cs">
       <DependentUpon>InputBox.xaml</DependentUpon>

@@ -17,6 +17,8 @@
                     Content="Click to Add Person" Click="ClickAddButton_Click" Margin="0,0,0,-0.4" />
             <Button x:Name="Addbutton" Width="131" Height="38" VerticalAlignment="Bottom" HorizontalAlignment="Left"
                     Content="Add Person From File" Click="Addbutton_Click" Margin="0,0,0,-0.4" />
+            <Button x:Name="ClearButton" Width="101" Height="38" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                    Content="Clear Persons" Margin="0,0,0,-0.6" Click="ClearButton_Click" />
         </DockPanel>
         <Image x:Name="FacePhoto" Stretch="Uniform" Margin="0,38,-0.4,27.6" MouseMove="FacePhoto_MouseMove" MouseLeftButtonDown="FacePhoto_MouseLeftButtonDown" />
         <DockPanel DockPanel.Dock="Bottom">
